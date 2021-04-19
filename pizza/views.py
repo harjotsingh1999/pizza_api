@@ -49,7 +49,7 @@ def one_pizza(request, pizza_id):
         pizza = models.Pizza.objects.get(id=pizza_id)
         print("pizza= ", pizza)
     except models.Pizza.DoesNotExist:
-        return JsonResponse("Pizza Not Found", status=404, safe=False)
+        return JsonResponse({"error": "Pizza Not Found"}, status=404, safe=False)
 
     if request.method == "GET":
         return JsonResponse(
@@ -59,7 +59,7 @@ def one_pizza(request, pizza_id):
         )
     elif request.method == "DELETE":
         pizza.delete()
-        return Response("Pizza Deleted", status=status.HTTP_202_ACCEPTED)
+        return Response({"success": "Pizza Deleted"}, status=status.HTTP_202_ACCEPTED)
     elif request.method == "PUT":
 
         type = request.data.get("type")
@@ -68,7 +68,9 @@ def one_pizza(request, pizza_id):
             type = str(type).lower().strip()
             print("updating pizza type to ", type)
             if type not in [models.Pizza.PIZZA_SQUARE, models.Pizza.PIZZA_REGULAR]:
-                return Response("Invalid Pizza Type", status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Invalid Pizza Type"}, status=status.HTTP_404_NOT_FOUND
+                )
             else:
                 pizza.pizza_type = type
 
@@ -81,7 +83,9 @@ def one_pizza(request, pizza_id):
                 )
                 print("updating pizza size to, ", psize)
             except models.Size.DoesNotExist:
-                return Response("Invalid Pizza Size", status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Invalid Pizza Size"}, status=status.HTTP_404_NOT_FOUND
+                )
             pizza.pizza_size = psize
 
         toppings = request.data.get("topping")
@@ -96,10 +100,11 @@ def one_pizza(request, pizza_id):
                     ptoppings.append(ptop.id)
                 except models.Topping.DoesNotExist:
                     return Response(
-                        "Invalid Pizza Topping", status=status.HTTP_404_NOT_FOUND
+                        {"error": "Invalid Pizza Topping"},
+                        status=status.HTTP_404_NOT_FOUND,
                     )
             pizza.pizza_topping.set(ptoppings)
-
+        pizza.save()
         data = serializers.PizzaSerializer(instance=pizza).data
         return Response(data, status=status.HTTP_202_ACCEPTED)
     return Response("Invalid Request", status=status.HTTP_400_BAD_REQUEST)
@@ -165,9 +170,11 @@ def create_regular_pizza(request):
     print("toppings= ", toppings)
 
     if size is None:
-        return JsonResponse("Size is required", status=412, safe="False")
+        return JsonResponse({"error": "Size is required"}, status=412, safe=False)
     if toppings is None:
-        return JsonResponse("One Topping is required", status=412, safe="False")
+        return JsonResponse(
+            {"error": "One Topping is required"}, status=412, safe=False
+        )
 
     size = str(size).capitalize()
     print("capitalized size= ", size)
@@ -175,7 +182,7 @@ def create_regular_pizza(request):
         psize = models.Size.objects.get(size_name=size)
         print("pizza size= ", psize)
     except models.Size.DoesNotExist:
-        return JsonResponse("Invalid Size", status=404, safe=False)
+        return JsonResponse({"error": "Invalid Size"}, status=404, safe=False)
 
     ptoppings_ids = []
     for t in toppings:
@@ -184,7 +191,7 @@ def create_regular_pizza(request):
             top = models.Topping.objects.get(topping_name=str(t).capitalize().strip())
             print(top)
         except models.Topping.DoesNotExist:
-            return JsonResponse("Invalid Topping", status=404, safe=False)
+            return JsonResponse({"error": "Invalid Topping"}, status=404, safe=False)
         ptoppings_ids.append(top.id)
 
     print(ptoppings_ids)
